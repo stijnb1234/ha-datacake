@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 import aiohttp
 
 from .const import API_URL
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class DatacakeError(Exception):
@@ -31,11 +34,15 @@ query ($ws: String!) {
     currentMeasurements(allActiveFields: true) {
       value
       modified
-      field { fieldName verboseFieldName }
+      field { fieldName verboseFieldName %s }
     }
   }
 }
 """
+
+# `unit` is a documented field setting in Datacake but not in the public GraphQL
+# docs; fall back to the plain query if the schema rejects it.
+EXTRA_FIELD_ATTRS = "unit"
 
 
 class DatacakeClient:
@@ -43,6 +50,7 @@ class DatacakeClient:
 
     def __init__(self, session: aiohttp.ClientSession, token: str) -> None:
         self._session = session
+        self._with_unit = True
         self._headers = {
             "Authorization": f"Token {token}",
             "Content-Type": "application/json",
@@ -74,5 +82,15 @@ class DatacakeClient:
         return (await self._query(WORKSPACES_QUERY))["allWorkspaces"]
 
     async def get_devices(self, workspace_id: str) -> list[dict[str, Any]]:
-        data = await self._query(DEVICES_QUERY, {"ws": workspace_id})
+        extra = EXTRA_FIELD_ATTRS if self._with_unit else ""
+        try:
+            data = await self._query(DEVICES_QUERY % extra, {"ws": workspace_id})
+        except DatacakeAuthError:
+            raise
+        except DatacakeError as err:
+            if self._with_unit and "Cannot query field" in str(err):
+                _LOGGER.warning("Datacake schema has no field unit; continuing without")
+                self._with_unit = False
+                return await self.get_devices(workspace_id)
+            raise
         return data["allDevices"]

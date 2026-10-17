@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from homeassistant.components.sensor import SensorEntity
+from homeassistant.components.sensor import SensorEntity, SensorStateClass
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -15,6 +15,7 @@ from homeassistant.util import dt as dt_util
 from . import DatacakeConfigEntry
 from .const import DOMAIN
 from .coordinator import DatacakeCoordinator
+from .units import resolve_unit
 
 
 async def async_setup_entry(
@@ -85,6 +86,29 @@ class DatacakeSensor(CoordinatorEntity[DatacakeCoordinator], SensorEntity):
     def native_value(self) -> Any:
         m = self._measurement
         return _coerce(m["value"]) if m else None
+
+    @property
+    def _resolved(self):
+        m = self._measurement
+        field = m["field"] if m else {}
+        return resolve_unit(
+            field.get("unit"), self._field, field.get("verboseFieldName")
+        )
+
+    @property
+    def native_unit_of_measurement(self) -> str | None:
+        return self._resolved[0]
+
+    @property
+    def device_class(self):
+        return self._resolved[1]
+
+    @property
+    def state_class(self):
+        # Only numeric values may carry a state class.
+        if isinstance(self.native_value, (int, float)):
+            return SensorStateClass.MEASUREMENT
+        return None
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:

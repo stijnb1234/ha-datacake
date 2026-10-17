@@ -44,7 +44,7 @@ own history is not backfilled.
 ## Limitations
 
 - Cloud polling only; no push.
-- Sensors have no units or device classes yet (Datacake field metadata not mapped).
+- Units and device classes are read from the Datacake field `unit` setting (free text, so only common units map to a device class; others show the raw text).
 - Read-only.
 
 ## License
