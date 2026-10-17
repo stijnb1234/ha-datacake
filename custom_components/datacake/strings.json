@@ -1,0 +1,35 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to Datacake",
+        "description": "Create a token in Datacake under Account Settings → API Token.",
+        "data": { "api_token": "API token" }
+      },
+      "workspace": {
+        "title": "Choose workspace",
+        "data": { "workspace_id": "Workspace" }
+      },
+      "reauth_confirm": {
+        "title": "Re-authenticate",
+        "data": { "api_token": "API token" }
+      }
+    },
+    "error": {
+      "invalid_auth": "Invalid API token",
+      "cannot_connect": "Cannot reach Datacake",
+      "no_workspaces": "Token has no workspaces"
+    },
+    "abort": {
+      "already_configured": "Workspace already configured",
+      "reauth_successful": "Token updated"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "data": { "scan_interval": "Update interval (seconds)" }
+      }
+    }
+  }
+}
